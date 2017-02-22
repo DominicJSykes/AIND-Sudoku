@@ -1,6 +1,7 @@
+from utils import *
+
 #Array for storing moves for visualisation in pygame
 assignments = []
-
 
 def assign_value(values, box, value):
     """
@@ -13,35 +14,41 @@ def assign_value(values, box, value):
     return values
 
 def naked_twins(values):
-    """Eliminate values using the naked twins strategy.
+    """
+    Iterates over 9 box units within the puzzle, finding pairs of boxes within
+    these units that share the same possible 2 values.
+    These are then passed to another function to eliminate values from shared peers.
+    """
+    #First find twin boxes
+    for unit in unit_list:
+        #Finds pairs of boxes which share a unit and values
+        pairs = [(box,pair) for box in unit for pair in unit if box!= pair if len(values[box]) == 2 if values[box] == values[pair]]
+        #If pair exists pass to function to remove values from peers
+        if len(pairs) > 0:
+            values = eliminate_twins(values,pairs)
+    return values
+    
+def eliminate_twins(values,pairs):
+    """Eliminate values found using the naked twins strategy.
     Args:
         values(dict): a dictionary of the form {'box_name': '123456789', ...}
+        pairs: a list of pairs within a unit that form the twins to eliminate using
 
     Returns:
         the values dictionary with the naked twins eliminated from peers.
         
-    Iterates over 9 box units within the puzzle, finding pairs of boxes within
-    these units that share the same possible 2 values.
-    From these creates a set of shared peers, which cannot have these 2 values.
-    The values can then be crossed off from these peers.
+    Passed a set of pairs, from which shared peers are found which 
+    cannot have the values shared by the pair.
+    The values can then be crossed off from the peers.
     """
-    for unit in unit_list:
-        pairs = [(box,pair) for box in unit for pair in unit if box!= pair if len(values[box]) == 2 if values[box] == values[pair]]
-        if len(pairs) > 0:
-            for pair in pairs:
-                twin_peers = set(peers[pair[0]]) & set(peers[pair[1]])
-                for peer in twin_peers:
-                    assign_value(values,peer,values[peer].replace(values[pair[0]][0],""))
-                    assign_value(values,peer,values[peer].replace(values[pair[0]][1],""))  
+    for pair in pairs:
+        #Creates a set of shared peers
+        twin_peers = set(peers[pair[0]]) & set(peers[pair[1]])
+        #For each of these peers remove the values from the twin boxes
+        for peer in twin_peers:
+            assign_value(values,peer,values[peer].replace(values[pair[0]][0],""))
+            assign_value(values,peer,values[peer].replace(values[pair[0]][1],""))  
     return values
-
-def cross(A, B):
-    "Cross product of elements in A and elements in B."
-    return [s+t for s in A for t in B]
-
-def single_cross(A, B):
-    "Cross product of elements from the same index from A and B."
-    return [A[i]+B[i] for i in range(len(A))]
 
 def grid_values(grid):
     """
@@ -168,25 +175,6 @@ def solve(grid):
 if __name__ == '__main__':
     #Puzzle to solve
     diag_sudoku_grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
-    
-    #Create the rows and columns where rows are named A-I and columns named 1-9.
-    rows = "ABCDEFGHI"
-    columns = "123456789"
-    boxes = cross(rows,columns)
-    
-    #Create units of 9 boxes
-    row_units = [cross(r,columns) for r in rows]
-    column_units = [cross(rows,c) for c in columns]
-    square_units = [cross(rs,cs) for rs in ["ABC","DEF","GHI"] for cs in ["123","456","789"]]
-    reverse_rows = rows[::-1]
-    diag_one = [single_cross(rows,columns)]
-    diag_two = [single_cross(reverse_rows,columns)]
-    unit_list = row_units + column_units + square_units + diag_one + diag_two
-    
-    #Create dictionaries for each box of units it belongs to and peers within
-    #these units
-    units = dict((s, [u for u in unit_list if s in u]) for s in boxes)
-    peers = dict((s, set(sum(units[s],[]))-set([s])) for s in boxes)
     
     #Call to solve
     (display(solve(diag_sudoku_grid)))
